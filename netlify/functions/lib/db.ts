@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import mysql, { type Pool, type PoolOptions } from 'mysql2/promise';
 
 let pool: Pool | null = null;
+let rdsCaBundle: string | null = null;
 
 interface MysqlConfig {
   host: string;
@@ -9,6 +13,39 @@ interface MysqlConfig {
   user: string;
   password: string;
   ssl?: PoolOptions['ssl'];
+}
+
+const RDS_CA_CANDIDATE_PATHS = [
+  join(process.cwd(), 'netlify/certs/rds-global-bundle.pem'),
+  join(__dirname, '..', '..', 'certs', 'rds-global-bundle.pem'),
+];
+
+function loadRdsCaBundle(): string {
+  if (rdsCaBundle) {
+    return rdsCaBundle;
+  }
+
+  for (const candidatePath of RDS_CA_CANDIDATE_PATHS) {
+    try {
+      rdsCaBundle = readFileSync(candidatePath, 'utf8');
+      return rdsCaBundle;
+    } catch {
+      // Try the next known location.
+    }
+  }
+
+  throw new Error('RDS CA bundle not found. Expected netlify/certs/rds-global-bundle.pem');
+}
+
+function resolveSslConfig(): PoolOptions['ssl'] | undefined {
+  if (process.env.MYSQL_SSL !== 'true') {
+    return undefined;
+  }
+
+  return {
+    ca: loadRdsCaBundle(),
+    rejectUnauthorized: true,
+  };
 }
 
 function parseJdbcUrl(jdbcUrl: string): Omit<MysqlConfig, 'user' | 'password' | 'ssl'> {
@@ -38,7 +75,7 @@ function resolveMysqlConfig(): MysqlConfig {
       ...parseJdbcUrl(jdbcUrl),
       user,
       password,
-      ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: true } : undefined,
+      ssl: resolveSslConfig(),
     };
   }
 
@@ -54,7 +91,7 @@ function resolveMysqlConfig(): MysqlConfig {
     database,
     user,
     password,
-    ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: true } : undefined,
+    ssl: resolveSslConfig(),
   };
 }
 
