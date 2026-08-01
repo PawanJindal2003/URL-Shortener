@@ -1,0 +1,100 @@
+<main class="page">
+  <header class="header">
+    <h1>URL Shortener</h1>
+    <p>Paste a long link and get a short one in seconds.</p>
+  </header>
+
+  <section class="card">
+    <h2>Shorten a URL</h2>
+    <form class="form" (ngSubmit)="shortenUrl()">
+      <label for="longUrl">Long URL</label>
+      <div class="input-row">
+        <input
+          id="longUrl"
+          type="url"
+          name="longUrl"
+          [(ngModel)]="longUrl"
+          placeholder="https://example.com/very/long/path"
+          [disabled]="shortenLoading"
+          required
+        />
+        <button type="submit" [disabled]="shortenLoading">
+          {{ shortenLoading ? 'Working...' : 'Shorten' }}
+        </button>
+      </div>
+    </form>
+
+    @if (createdUrl) {
+      <div class="result">
+        <div class="link-row">
+          <a [href]="shortLink(createdUrl.shortCode)" target="_blank" rel="noopener">
+            {{ shortLink(createdUrl.shortCode) }}
+          </a>
+          <button type="button" class="secondary" (click)="copyShortLink(createdUrl.shortCode)">
+            Copy
+          </button>
+        </div>
+      </div>
+    }
+  </section>
+
+  <section class="card">
+    <h2>Look up a short code</h2>
+    <form class="form" (ngSubmit)="lookupUrl()">
+      <label for="lookupCode">Short code</label>
+      <div class="input-row">
+        <input
+          id="lookupCode"
+          type="text"
+          name="lookupCode"
+          [(ngModel)]="lookupCode"
+          placeholder="e.g. 4aec853d or http://localhost:4200/4aec853d"
+          [disabled]="lookupLoading"
+          required
+        />
+        <button type="submit" [disabled]="lookupLoading">
+          {{ lookupLoading ? 'Working...' : 'Look up' }}
+        </button>
+      </div>
+    </form>
+
+    @if (lookedUpUrl) {
+      <div class="result">
+        <p class="label">Short link</p>
+        <div class="link-row">
+          <a [href]="shortLink(lookedUpUrl.shortCode)" target="_blank" rel="noopener">
+            {{ shortLink(lookedUpUrl.shortCode) }}
+          </a>
+          <button type="button" class="secondary" (click)="copyShortLink(lookedUpUrl.shortCode)">
+            Copy
+          </button>
+        </div>
+        <dl class="meta">
+          <div>
+            <dt>Original</dt>
+            <dd>{{ lookedUpUrl.originalUrl }}</dd>
+          </div>
+          <div>
+            <dt>Clicks</dt>
+            <dd>{{ lookedUpUrl.clickCount }}</dd>
+          </div>
+          <div>
+            <dt>Expires</dt>
+            <dd>{{ lookedUpUrl.expiresAt | date: 'medium' }}</dd>
+          </div>
+        </dl>
+        <button type="button" class="danger" (click)="deleteUrl(lookedUpUrl.shortCode)" [disabled]="lookupLoading">
+          Delete
+        </button>
+      </div>
+    }
+  </section>
+
+  @if (errorMessage) {
+    <p class="message error" role="alert">{{ errorMessage }}</p>
+  }
+
+  @if (copyMessage) {
+    <p class="message success" role="status">{{ copyMessage }}</p>
+  }
+</main>

@@ -1,0 +1,82 @@
+# --- Maven / Java backend ---
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+HELP.md
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+
+# --- Frontend (client-app) ---
+client-app/node_modules/
+client-app/dist/
+client-app/.angular/
+client-app/coverage/
+client-app/tmp/
+client-app/out-tsc/
+client-app/bazel-out/
+client-app/.sass-cache/
+client-app/libpeerconnection.log
+client-app/connect.lock
+client-app/testem.log
+client-app/typings/
+client-app/npm-debug.log*
+client-app/yarn-debug.log*
+client-app/yarn-error.log*
+client-app/pnpm-debug.log*
+
+# --- Environment & secrets ---
+.env
+.env.*
+!.env.example
+*.local.properties
+application-local.properties
+application-local.yml
+application-local.yaml
+
+# --- IDE ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.history/
+*.sublime-workspace
+*.sublime-project
+.c9/
+
+# --- Cursor (local agent/IDE state) ---
+.cursor/
+
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Logs & diagnostics ---
+*.log
+logs/
+hs_err_pid*
+replay_pid*
+
+# --- NetBeans / Gradle (if used later) ---
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
