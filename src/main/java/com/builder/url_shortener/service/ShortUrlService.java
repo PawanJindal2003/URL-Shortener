@@ -3,13 +3,17 @@ package com.builder.url_shortener.service;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.builder.url_shortener.config.MessageService;
+import com.builder.url_shortener.config.Messages;
 import com.builder.url_shortener.dto.ShortUrlDto;
 import com.builder.url_shortener.entity.ShortUrl;
+import com.builder.url_shortener.exception.BadRequestException;
+import com.builder.url_shortener.exception.InternalServerException;
+import com.builder.url_shortener.exception.NotFoundException;
+import com.builder.url_shortener.exception.ResourceExpiredException;
 import com.builder.url_shortener.mapper.ShortUrlMapper;
 import com.builder.url_shortener.repository.ShortUrlRepository;
 
@@ -26,18 +30,19 @@ public class ShortUrlService {
 
     private final ShortUrlRepository shortUrlRepository;
     private final ShortUrlMapper shortUrlMapper;
+    private final MessageService messageService;
 
     @Transactional
     public ShortUrlDto createShortUrl(String originalUrl) {
         String normalizedUrl = originalUrl == null ? "" : originalUrl.trim();
         if (normalizedUrl.isBlank()) {
-            log.warn("Rejected short URL creation: blank URL");
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "URL must not be blank");
+            log.warn(messageService.get(Messages.LOG_SERVICE_SHORT_URL_CREATE_REJECTED_BLANK));
+            throw new BadRequestException(Messages.ERROR_URL_BLANK);
         }
 
         return shortUrlRepository.findFirstByOriginalUrl(normalizedUrl)
                 .map(existing -> {
-                    log.debug("Returning existing short URL for code={}", existing.getShortCode());
+                    log.debug(messageService.get(Messages.LOG_SERVICE_SHORT_URL_CREATE_EXISTING, existing.getShortCode()));
                     return shortUrlMapper.toDto(existing);
                 })
                 .orElseGet(() -> createNewShortUrl(normalizedUrl));
@@ -51,7 +56,10 @@ public class ShortUrlService {
         entity.setExpiresAt(LocalDateTime.now().plusDays(DEFAULT_EXPIRATION_DAYS));
 
         ShortUrl saved = shortUrlRepository.save(entity);
-        log.info("Created short URL code={} expiresAt={}", saved.getShortCode(), saved.getExpiresAt());
+        log.info(messageService.get(
+                Messages.LOG_SERVICE_SHORT_URL_CREATE_SAVED,
+                saved.getShortCode(),
+                saved.getExpiresAt()));
         return shortUrlMapper.toDto(saved);
     }
 
@@ -61,14 +69,16 @@ public class ShortUrlService {
 
         if (shortUrl.getExpiresAt() != null
                 && shortUrl.getExpiresAt().isBefore(LocalDateTime.now())) {
-            log.warn("Redirect rejected: shortCode={} has expired", shortCode);
-            throw new ResponseStatusException(
-                    HttpStatus.GONE, "Short URL has expired");
+            log.warn(messageService.get(Messages.LOG_SERVICE_SHORT_URL_REDIRECT_EXPIRED, shortCode));
+            throw new ResourceExpiredException(Messages.ERROR_SHORT_URL_EXPIRED);
         }
 
         shortUrl.setClickCount(shortUrl.getClickCount() + 1);
         shortUrlRepository.save(shortUrl);
-        log.debug("Redirecting shortCode={} clickCount={}", shortCode, shortUrl.getClickCount());
+        log.debug(messageService.get(
+                Messages.LOG_SERVICE_SHORT_URL_REDIRECT_SUCCESS,
+                shortCode,
+                shortUrl.getClickCount()));
 
         return shortUrl.getOriginalUrl();
     }
@@ -82,15 +92,14 @@ public class ShortUrlService {
     public void deleteUrl(String shortCode) {
         ShortUrl shortUrl = findByShortCodeOrThrow(shortCode);
         shortUrlRepository.delete(shortUrl);
-        log.info("Deleted short URL code={}", shortCode);
+        log.info(messageService.get(Messages.LOG_SERVICE_SHORT_URL_DELETE_SUCCESS, shortCode));
     }
 
     private ShortUrl findByShortCodeOrThrow(String shortCode) {
         return shortUrlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> {
-                    log.warn("Short URL not found for code={}", shortCode);
-                    return new ResponseStatusException(
-                            HttpStatus.NOT_FOUND, "Short URL not found");
+                    log.warn(messageService.get(Messages.LOG_SERVICE_SHORT_URL_NOT_FOUND, shortCode));
+                    return new NotFoundException(Messages.ERROR_SHORT_URL_NOT_FOUND);
                 });
     }
 
@@ -101,8 +110,9 @@ public class ShortUrlService {
                 return shortCode;
             }
         }
-        log.error("Failed to generate unique short code after {} attempts", MAX_SHORT_CODE_GENERATION_ATTEMPTS);
-        throw new ResponseStatusException(
-                HttpStatus.INTERNAL_SERVER_ERROR, "Unable to generate unique short code");
+        log.error(messageService.get(
+                Messages.LOG_SERVICE_SHORT_URL_CODE_GENERATION_FAILED,
+                MAX_SHORT_CODE_GENERATION_ATTEMPTS));
+        throw new InternalServerException(Messages.ERROR_SHORT_URL_CODE_GENERATION_FAILED);
     }
 }

@@ -10,15 +10,20 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.builder.url_shortener.config.MessageService;
+import com.builder.url_shortener.config.Messages;
+import com.builder.url_shortener.exception.BadRequestException;
+import com.builder.url_shortener.exception.NotFoundException;
+import com.builder.url_shortener.exception.ResourceExpiredException;
 import com.builder.url_shortener.dto.ShortUrlDto;
 import com.builder.url_shortener.entity.ShortUrl;
 import com.builder.url_shortener.mapper.ShortUrlMapper;
@@ -33,8 +38,16 @@ class ShortUrlServiceTest {
     @Mock
     private ShortUrlMapper shortUrlMapper;
 
-    @InjectMocks
     private ShortUrlService shortUrlService;
+
+    @BeforeEach
+    void setUp() {
+        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+        messageSource.setBasename("messages");
+        messageSource.setDefaultEncoding("UTF-8");
+        MessageService messageService = new MessageService(messageSource);
+        shortUrlService = new ShortUrlService(shortUrlRepository, shortUrlMapper, messageService);
+    }
 
     @Test
     void createShortUrl_persistsTrimmedUrlWithUniqueShortCode() {
@@ -94,11 +107,11 @@ class ShortUrlServiceTest {
 
     @Test
     void createShortUrl_throwsBadRequestForBlankUrl() {
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> shortUrlService.createShortUrl("   "));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         verify(shortUrlRepository, never()).save(any());
     }
 
@@ -125,11 +138,11 @@ class ShortUrlServiceTest {
     void redirect_throwsNotFoundWhenShortCodeDoesNotExist() {
         when(shortUrlRepository.findByShortCode("missing")).thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
                 () -> shortUrlService.redirect("missing"));
 
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
     }
 
     @Test
@@ -142,11 +155,11 @@ class ShortUrlServiceTest {
 
         when(shortUrlRepository.findByShortCode("expired1")).thenReturn(Optional.of(shortUrl));
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        ResourceExpiredException exception = assertThrows(
+                ResourceExpiredException.class,
                 () -> shortUrlService.redirect("expired1"));
 
-        assertEquals(HttpStatus.GONE, exception.getStatusCode());
+        assertEquals(HttpStatus.GONE, exception.getStatus());
     }
 
     @Test
@@ -177,11 +190,11 @@ class ShortUrlServiceTest {
     void getMetadata_throwsNotFoundWhenShortCodeDoesNotExist() {
         when(shortUrlRepository.findByShortCode("missing")).thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
                 () -> shortUrlService.getMetadata("missing"));
 
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
     }
 
     @Test
@@ -201,10 +214,10 @@ class ShortUrlServiceTest {
     void deleteUrl_throwsNotFoundWhenShortCodeDoesNotExist() {
         when(shortUrlRepository.findByShortCode("missing")).thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
                 () -> shortUrlService.deleteUrl("missing"));
 
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
     }
 }
