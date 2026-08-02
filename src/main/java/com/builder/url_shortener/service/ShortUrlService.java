@@ -32,11 +32,7 @@ public class ShortUrlService {
 
     @Transactional
     public ShortUrlDto createShortUrl(String originalUrl) {
-        String normalizedUrl = originalUrl == null ? "" : originalUrl.trim();
-        if (normalizedUrl.isBlank()) {
-            log.warn(messageService.get(Messages.LOG_SERVICE_SHORT_URL_CREATE_REJECTED_BLANK));
-            throw new BadRequestException(Messages.ERROR_URL_BLANK);
-        }
+        String normalizedUrl = originalUrl.trim();
 
         return shortUrlRepository.findFirstByOriginalUrl(normalizedUrl)
                 .map(existing -> {
