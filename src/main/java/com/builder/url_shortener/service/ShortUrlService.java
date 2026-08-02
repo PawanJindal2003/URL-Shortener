@@ -14,7 +14,9 @@ import com.builder.url_shortener.mapper.ShortUrlMapper;
 import com.builder.url_shortener.repository.ShortUrlRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @SuppressWarnings("java:S8688")
@@ -29,11 +31,15 @@ public class ShortUrlService {
     public ShortUrlDto createShortUrl(String originalUrl) {
         String normalizedUrl = originalUrl == null ? "" : originalUrl.trim();
         if (normalizedUrl.isBlank()) {
+            log.warn("Rejected short URL creation: blank URL");
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "URL must not be blank");
         }
 
         return shortUrlRepository.findFirstByOriginalUrl(normalizedUrl)
-                .map(shortUrlMapper::toDto)
+                .map(existing -> {
+                    log.debug("Returning existing short URL for code={}", existing.getShortCode());
+                    return shortUrlMapper.toDto(existing);
+                })
                 .orElseGet(() -> createNewShortUrl(normalizedUrl));
     }
 
@@ -45,6 +51,7 @@ public class ShortUrlService {
         entity.setExpiresAt(LocalDateTime.now().plusDays(DEFAULT_EXPIRATION_DAYS));
 
         ShortUrl saved = shortUrlRepository.save(entity);
+        log.info("Created short URL code={} expiresAt={}", saved.getShortCode(), saved.getExpiresAt());
         return shortUrlMapper.toDto(saved);
     }
 
@@ -54,12 +61,14 @@ public class ShortUrlService {
 
         if (shortUrl.getExpiresAt() != null
                 && shortUrl.getExpiresAt().isBefore(LocalDateTime.now())) {
+            log.warn("Redirect rejected: shortCode={} has expired", shortCode);
             throw new ResponseStatusException(
                     HttpStatus.GONE, "Short URL has expired");
         }
 
         shortUrl.setClickCount(shortUrl.getClickCount() + 1);
         shortUrlRepository.save(shortUrl);
+        log.debug("Redirecting shortCode={} clickCount={}", shortCode, shortUrl.getClickCount());
 
         return shortUrl.getOriginalUrl();
     }
@@ -71,13 +80,18 @@ public class ShortUrlService {
 
     @Transactional
     public void deleteUrl(String shortCode) {
-        shortUrlRepository.delete(findByShortCodeOrThrow(shortCode));
+        ShortUrl shortUrl = findByShortCodeOrThrow(shortCode);
+        shortUrlRepository.delete(shortUrl);
+        log.info("Deleted short URL code={}", shortCode);
     }
 
     private ShortUrl findByShortCodeOrThrow(String shortCode) {
         return shortUrlRepository.findByShortCode(shortCode)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Short URL not found"));
+                .orElseThrow(() -> {
+                    log.warn("Short URL not found for code={}", shortCode);
+                    return new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "Short URL not found");
+                });
     }
 
     private String generateUniqueShortCode() {
@@ -87,6 +101,7 @@ public class ShortUrlService {
                 return shortCode;
             }
         }
+        log.error("Failed to generate unique short code after {} attempts", MAX_SHORT_CODE_GENERATION_ATTEMPTS);
         throw new ResponseStatusException(
                 HttpStatus.INTERNAL_SERVER_ERROR, "Unable to generate unique short code");
     }

@@ -18,7 +18,9 @@ import com.builder.url_shortener.service.ShortUrlService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -27,12 +29,15 @@ public class ShortUrlController {
 
     @PostMapping("v1/urls")
     public ResponseEntity<ShortUrlDto> createShortUrl(@Valid @RequestBody CreateShortUrlRequest request) {
+        log.info("Creating short URL for request");
         ShortUrlDto createdShortUrl = shortUrlService.createShortUrl(request.getUrl());
+        log.info("Short URL created with code={}", createdShortUrl.getShortCode());
         return ResponseEntity.status(HttpStatus.CREATED).body(createdShortUrl);
     }
 
     @GetMapping("v1/urls/{shortCode}")
     public ResponseEntity<Void> redirectByShortCode(@PathVariable String shortCode) {
+        log.info("Redirect requested for shortCode={}", shortCode);
         String originalUrl = shortUrlService.redirect(shortCode);
         return ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(originalUrl))
@@ -41,12 +46,14 @@ public class ShortUrlController {
 
     @GetMapping("v1/urls/{shortCode}/metadata")
     public ResponseEntity<ShortUrlDto> getMetadata(@PathVariable String shortCode) {
+        log.debug("Metadata requested for shortCode={}", shortCode);
         ShortUrlDto metadata = shortUrlService.getMetadata(shortCode);
         return ResponseEntity.ok(metadata);
     }
 
     @DeleteMapping("v1/urls/{shortCode}")
     public ResponseEntity<Void> deleteUrl(@PathVariable String shortCode) {
+        log.info("Delete requested for shortCode={}", shortCode);
         shortUrlService.deleteUrl(shortCode);
         return ResponseEntity.noContent().build();
     }

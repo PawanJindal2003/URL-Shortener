@@ -12,6 +12,7 @@ import { UrlShortenerService } from '../services/url-shortener.service';
   styleUrl: './url-shortener-home.component.css',
 })
 export class UrlShortenerHomeComponent {
+  activeTab: 'shorten' | 'lookup' = 'shorten';
   longUrl = '';
   lookupCode = '';
 
@@ -24,6 +25,11 @@ export class UrlShortenerHomeComponent {
   copyMessage = '';
 
   constructor(private readonly urlShortenerService: UrlShortenerService) {}
+
+  setTab(tab: 'shorten' | 'lookup'): void {
+    this.activeTab = tab;
+    this.resetMessages();
+  }
 
   shortenUrl(): void {
     this.resetMessages();

@@ -1,75 +1,84 @@
 <main class="page">
-  <header class="header">
-    <h1>URL Shortener</h1>
-    <p>Paste a long link and get a short one in seconds.</p>
+  <header class="hero">
+    <span class="badge">link.ly</span>
+    <h1>Short links,<br />zero friction.</h1>
   </header>
 
-  <section class="card">
-    <h2>Shorten a URL</h2>
-    <form class="form" (ngSubmit)="shortenUrl()">
-      <label for="longUrl">Long URL</label>
-      <div class="input-row">
-        <input
-          id="longUrl"
-          type="url"
-          name="longUrl"
-          [(ngModel)]="longUrl"
-          placeholder="https://example.com/very/long/path"
-          [disabled]="shortenLoading"
-          required
-        />
-        <button type="submit" [disabled]="shortenLoading">
-          {{ shortenLoading ? 'Working...' : 'Shorten' }}
-        </button>
-      </div>
-    </form>
+  <div class="panel">
+    <nav class="tabs" aria-label="Actions">
+      <button
+        type="button"
+        class="tab"
+        [class.active]="activeTab === 'shorten'"
+        (click)="setTab('shorten')"
+      >
+        Shorten
+      </button>
+      <button
+        type="button"
+        class="tab"
+        [class.active]="activeTab === 'lookup'"
+        (click)="setTab('lookup')"
+      >
+        Lookup
+      </button>
+    </nav>
 
-    @if (createdUrl) {
-      <div class="result">
-        <div class="link-row">
-          <a [href]="shortLink(createdUrl.shortCode)" target="_blank" rel="noopener">
-            {{ shortLink(createdUrl.shortCode) }}
-          </a>
-          <button type="button" class="secondary" (click)="copyShortLink(createdUrl.shortCode)">
+    @if (activeTab === 'shorten') {
+      <form class="form" (ngSubmit)="shortenUrl()">
+        <div class="field">
+          <input
+            id="longUrl"
+            type="url"
+            name="longUrl"
+            [(ngModel)]="longUrl"
+            placeholder="Paste your long URL here"
+            [disabled]="shortenLoading"
+            required
+            autocomplete="off"
+          />
+          <button type="submit" class="go" [disabled]="shortenLoading">
+            {{ shortenLoading ? '…' : 'Go' }}
+          </button>
+        </div>
+      </form>
+
+      @if (createdUrl) {
+        <div class="output">
+          <span class="output__link">{{ shortLink(createdUrl.shortCode) }}</span>
+          <button type="button" class="ghost" (click)="copyShortLink(createdUrl.shortCode)">
             Copy
           </button>
         </div>
-      </div>
-    }
-  </section>
+      }
+    } @else {
+      <form class="form" (ngSubmit)="lookupUrl()">
+        <div class="field">
+          <input
+            id="lookupCode"
+            type="text"
+            name="lookupCode"
+            [(ngModel)]="lookupCode"
+            placeholder="Short code or link"
+            [disabled]="lookupLoading"
+            required
+            autocomplete="off"
+          />
+          <button type="submit" class="go" [disabled]="lookupLoading">
+            {{ lookupLoading ? '…' : 'Go' }}
+          </button>
+        </div>
+      </form>
 
-  <section class="card">
-    <h2>Look up a short code</h2>
-    <form class="form" (ngSubmit)="lookupUrl()">
-      <label for="lookupCode">Short code</label>
-      <div class="input-row">
-        <input
-          id="lookupCode"
-          type="text"
-          name="lookupCode"
-          [(ngModel)]="lookupCode"
-          placeholder="e.g. 4aec853d or http://localhost:4200/4aec853d"
-          [disabled]="lookupLoading"
-          required
-        />
-        <button type="submit" [disabled]="lookupLoading">
-          {{ lookupLoading ? 'Working...' : 'Look up' }}
-        </button>
-      </div>
-    </form>
-
-    @if (lookedUpUrl) {
-      <div class="result">
-        <p class="label">Short link</p>
-        <div class="link-row">
-          <a [href]="shortLink(lookedUpUrl.shortCode)" target="_blank" rel="noopener">
-            {{ shortLink(lookedUpUrl.shortCode) }}
-          </a>
-          <button type="button" class="secondary" (click)="copyShortLink(lookedUpUrl.shortCode)">
+      @if (lookedUpUrl) {
+        <div class="output">
+          <span class="output__link">{{ shortLink(lookedUpUrl.shortCode) }}</span>
+          <button type="button" class="ghost" (click)="copyShortLink(lookedUpUrl.shortCode)">
             Copy
           </button>
         </div>
-        <dl class="meta">
+
+        <dl class="stats">
           <div>
             <dt>Original</dt>
             <dd>{{ lookedUpUrl.originalUrl }}</dd>
@@ -80,21 +89,27 @@
           </div>
           <div>
             <dt>Expires</dt>
-            <dd>{{ lookedUpUrl.expiresAt | date: 'medium' }}</dd>
+            <dd>{{ lookedUpUrl.expiresAt | date: 'MMM d, y' }}</dd>
           </div>
         </dl>
-        <button type="button" class="danger" (click)="deleteUrl(lookedUpUrl.shortCode)" [disabled]="lookupLoading">
-          Delete
+
+        <button
+          type="button"
+          class="danger"
+          (click)="deleteUrl(lookedUpUrl.shortCode)"
+          [disabled]="lookupLoading"
+        >
+          Delete link
         </button>
-      </div>
+      }
     }
-  </section>
+  </div>
 
   @if (errorMessage) {
-    <p class="message error" role="alert">{{ errorMessage }}</p>
+    <p class="toast error" role="alert">{{ errorMessage }}</p>
   }
 
   @if (copyMessage) {
-    <p class="message success" role="status">{{ copyMessage }}</p>
+    <p class="toast success" role="status">{{ copyMessage }}</p>
   }
 </main>
