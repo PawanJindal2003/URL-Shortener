@@ -17,14 +17,17 @@ import com.builder.url_shortener.config.Messages;
 import com.builder.url_shortener.dto.CreateShortUrlRequest;
 import com.builder.url_shortener.dto.ShortUrlDto;
 import com.builder.url_shortener.service.ShortUrlService;
+import com.builder.url_shortener.validation.ValidShortCode;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 
 @Slf4j
 @RestController
 @RequestMapping("/api")
+@Validated
 @RequiredArgsConstructor
 public class ShortUrlController {
     private final ShortUrlService shortUrlService;
@@ -39,7 +42,7 @@ public class ShortUrlController {
     }
 
     @GetMapping("v1/urls/{shortCode}")
-    public ResponseEntity<Void> redirectByShortCode(@PathVariable String shortCode) {
+    public ResponseEntity<Void> redirectByShortCode(@PathVariable @ValidShortCode String shortCode) {
         log.info(messageService.get(Messages.LOG_CONTROLLER_SHORT_URL_REDIRECT_REQUEST, shortCode));
         String originalUrl = shortUrlService.redirect(shortCode);
         return ResponseEntity.status(HttpStatus.FOUND)
@@ -48,14 +51,14 @@ public class ShortUrlController {
     }
 
     @GetMapping("v1/urls/{shortCode}/metadata")
-    public ResponseEntity<ShortUrlDto> getMetadata(@PathVariable String shortCode) {
+    public ResponseEntity<ShortUrlDto> getMetadata(@PathVariable @ValidShortCode String shortCode) {
         log.debug(messageService.get(Messages.LOG_CONTROLLER_SHORT_URL_METADATA_REQUEST, shortCode));
         ShortUrlDto metadata = shortUrlService.getMetadata(shortCode);
         return ResponseEntity.ok(metadata);
     }
 
     @DeleteMapping("v1/urls/{shortCode}")
-    public ResponseEntity<Void> deleteUrl(@PathVariable String shortCode) {
+    public ResponseEntity<Void> deleteUrl(@PathVariable @ValidShortCode String shortCode) {
         log.info(messageService.get(Messages.LOG_CONTROLLER_SHORT_URL_DELETE_REQUEST, shortCode));
         shortUrlService.deleteUrl(shortCode);
         return ResponseEntity.noContent().build();

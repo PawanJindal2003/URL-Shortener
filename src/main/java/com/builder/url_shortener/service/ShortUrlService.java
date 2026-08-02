@@ -14,7 +14,6 @@ import com.builder.url_shortener.exception.BadRequestException;
 import com.builder.url_shortener.exception.InternalServerException;
 import com.builder.url_shortener.exception.NotFoundException;
 import com.builder.url_shortener.exception.ResourceExpiredException;
-import com.builder.url_shortener.mapper.ShortUrlMapper;
 import com.builder.url_shortener.repository.ShortUrlRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -29,7 +28,6 @@ public class ShortUrlService {
     private static final int MAX_SHORT_CODE_GENERATION_ATTEMPTS = 5;
 
     private final ShortUrlRepository shortUrlRepository;
-    private final ShortUrlMapper shortUrlMapper;
     private final MessageService messageService;
 
     @Transactional
@@ -43,7 +41,7 @@ public class ShortUrlService {
         return shortUrlRepository.findFirstByOriginalUrl(normalizedUrl)
                 .map(existing -> {
                     log.debug(messageService.get(Messages.LOG_SERVICE_SHORT_URL_CREATE_EXISTING, existing.getShortCode()));
-                    return shortUrlMapper.toDto(existing);
+                    return ShortUrlDto.toDto(existing);
                 })
                 .orElseGet(() -> createNewShortUrl(normalizedUrl));
     }
@@ -60,7 +58,7 @@ public class ShortUrlService {
                 Messages.LOG_SERVICE_SHORT_URL_CREATE_SAVED,
                 saved.getShortCode(),
                 saved.getExpiresAt()));
-        return shortUrlMapper.toDto(saved);
+        return ShortUrlDto.toDto(saved);
     }
 
     @Transactional
@@ -85,7 +83,7 @@ public class ShortUrlService {
 
     public ShortUrlDto getMetadata(String shortCode) {
         ShortUrl shortUrl = findByShortCodeOrThrow(shortCode);
-        return shortUrlMapper.toDto(shortUrl);
+        return ShortUrlDto.toDto(shortUrl);
     }
 
     @Transactional

@@ -20,13 +20,11 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.http.HttpStatus;
 
 import com.builder.url_shortener.config.MessageService;
-import com.builder.url_shortener.config.Messages;
+import com.builder.url_shortener.dto.ShortUrlDto;
+import com.builder.url_shortener.entity.ShortUrl;
 import com.builder.url_shortener.exception.BadRequestException;
 import com.builder.url_shortener.exception.NotFoundException;
 import com.builder.url_shortener.exception.ResourceExpiredException;
-import com.builder.url_shortener.dto.ShortUrlDto;
-import com.builder.url_shortener.entity.ShortUrl;
-import com.builder.url_shortener.mapper.ShortUrlMapper;
 import com.builder.url_shortener.repository.ShortUrlRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,9 +32,6 @@ class ShortUrlServiceTest {
 
     @Mock
     private ShortUrlRepository shortUrlRepository;
-
-    @Mock
-    private ShortUrlMapper shortUrlMapper;
 
     private ShortUrlService shortUrlService;
 
@@ -46,7 +41,7 @@ class ShortUrlServiceTest {
         messageSource.setBasename("messages");
         messageSource.setDefaultEncoding("UTF-8");
         MessageService messageService = new MessageService(messageSource);
-        shortUrlService = new ShortUrlService(shortUrlRepository, shortUrlMapper, messageService);
+        shortUrlService = new ShortUrlService(shortUrlRepository, messageService);
     }
 
     @Test
@@ -57,16 +52,6 @@ class ShortUrlServiceTest {
             ShortUrl entity = invocation.getArgument(0);
             entity.setId(1L);
             return entity;
-        });
-        when(shortUrlMapper.toDto(any(ShortUrl.class))).thenAnswer(invocation -> {
-            ShortUrl entity = invocation.getArgument(0);
-            ShortUrlDto dto = new ShortUrlDto();
-            dto.setId(entity.getId());
-            dto.setOriginalUrl(entity.getOriginalUrl());
-            dto.setShortCode(entity.getShortCode());
-            dto.setClickCount(entity.getClickCount());
-            dto.setExpiresAt(entity.getExpiresAt());
-            return dto;
         });
 
         ShortUrlDto result = shortUrlService.createShortUrl("  https://example.com  ");
@@ -88,14 +73,7 @@ class ShortUrlServiceTest {
         existing.setShortCode("existing1");
         existing.setClickCount(10L);
 
-        ShortUrlDto existingDto = new ShortUrlDto();
-        existingDto.setId(5L);
-        existingDto.setOriginalUrl("https://example.com");
-        existingDto.setShortCode("existing1");
-        existingDto.setClickCount(10L);
-
         when(shortUrlRepository.findFirstByOriginalUrl("https://example.com")).thenReturn(Optional.of(existing));
-        when(shortUrlMapper.toDto(existing)).thenReturn(existingDto);
 
         ShortUrlDto result = shortUrlService.createShortUrl("  https://example.com  ");
 
@@ -171,19 +149,15 @@ class ShortUrlServiceTest {
         shortUrl.setClickCount(5L);
         shortUrl.setExpiresAt(LocalDateTime.now().plusDays(1));
 
-        ShortUrlDto expectedDto = new ShortUrlDto();
-        expectedDto.setId(1L);
-        expectedDto.setShortCode("abc12345");
-        expectedDto.setOriginalUrl("https://example.com");
-        expectedDto.setClickCount(5L);
-        expectedDto.setExpiresAt(shortUrl.getExpiresAt());
-
         when(shortUrlRepository.findByShortCode("abc12345")).thenReturn(Optional.of(shortUrl));
-        when(shortUrlMapper.toDto(shortUrl)).thenReturn(expectedDto);
 
         ShortUrlDto result = shortUrlService.getMetadata("abc12345");
 
-        assertEquals(expectedDto, result);
+        assertEquals(1L, result.getId());
+        assertEquals("abc12345", result.getShortCode());
+        assertEquals("https://example.com", result.getOriginalUrl());
+        assertEquals(5L, result.getClickCount());
+        assertEquals(shortUrl.getExpiresAt(), result.getExpiresAt());
     }
 
     @Test

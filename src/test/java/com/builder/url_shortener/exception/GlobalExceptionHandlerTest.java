@@ -37,7 +37,19 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Validation Failed"))
-                .andExpect(jsonPath("$.message").value("url: URL must not be blank"))
+                .andExpect(jsonPath("$.message").value("URL must not be blank"))
+                .andExpect(jsonPath("$.path").value("/api/v1/urls"));
+    }
+
+    @Test
+    void handleValidation_returnsErrorResponseForInvalidUrl() throws Exception {
+        mockMvc.perform(post("/api/v1/urls")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"not-a-valid-url\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Validation Failed"))
+                .andExpect(jsonPath("$.message").value("URL is invalid"))
                 .andExpect(jsonPath("$.path").value("/api/v1/urls"));
     }
 
@@ -62,6 +74,16 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Short URL not found"));
+    }
+
+    @Test
+    void handleValidation_returnsErrorResponseForInvalidShortCode() throws Exception {
+        mockMvc.perform(get("/api/v1/urls/invalid@code/metadata"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Validation Failed"))
+                .andExpect(jsonPath("$.message").value("Short code is invalid"))
+                .andExpect(jsonPath("$.path").value("/api/v1/urls/invalid@code/metadata"));
     }
 
     @Test

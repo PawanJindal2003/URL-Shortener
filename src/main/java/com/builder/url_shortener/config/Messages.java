@@ -7,6 +7,9 @@ public final class Messages {
 
     // Validation
     public static final String VALIDATION_URL_NOT_BLANK = "validation.url.notBlank";
+    public static final String VALIDATION_URL_INVALID = "validation.url.invalid";
+    public static final String VALIDATION_SHORT_CODE_NOT_BLANK = "validation.shortCode.notBlank";
+    public static final String VALIDATION_SHORT_CODE_INVALID = "validation.shortCode.invalid";
 
     // API error messages
     public static final String ERROR_URL_BLANK = "error.url.blank";
@@ -22,9 +25,6 @@ public final class Messages {
     public static final String ERROR_TITLE_NOT_FOUND = "error.title.notFound";
     public static final String ERROR_TITLE_GONE = "error.title.gone";
     public static final String ERROR_TITLE_INTERNAL_SERVER_ERROR = "error.title.internalServerError";
-
-    // Validation error format
-    public static final String ERROR_VALIDATION_FIELD = "error.validation.field";
 
     // Controller logs
     public static final String LOG_CONTROLLER_SHORT_URL_CREATE_REQUEST = "log.controller.shortUrl.create.request";
