@@ -84,7 +84,9 @@ public class ShortUrlService {
     @Transactional
     public void deleteUrl(String shortCode) {
         ShortUrl shortUrl = findByShortCodeOrThrow(shortCode);
-        shortUrlRepository.delete(shortUrl);
+        shortUrl.setDeleted(true);
+        shortUrl.setDeletedAt(LocalDateTime.now());
+        shortUrlRepository.save(shortUrl);
         log.info(messageService.get(Messages.LOG_SERVICE_SHORT_URL_DELETE_SUCCESS, shortCode));
     }
 

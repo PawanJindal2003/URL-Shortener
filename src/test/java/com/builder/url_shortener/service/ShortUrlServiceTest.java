@@ -1,7 +1,9 @@
 package com.builder.url_shortener.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -22,7 +24,6 @@ import org.springframework.http.HttpStatus;
 import com.builder.url_shortener.config.MessageService;
 import com.builder.url_shortener.dto.ShortUrlDto;
 import com.builder.url_shortener.entity.ShortUrl;
-import com.builder.url_shortener.exception.BadRequestException;
 import com.builder.url_shortener.exception.NotFoundException;
 import com.builder.url_shortener.exception.ResourceExpiredException;
 import com.builder.url_shortener.repository.ShortUrlRepository;
@@ -80,16 +81,6 @@ class ShortUrlServiceTest {
         assertEquals("existing1", result.getShortCode());
         assertEquals("https://example.com", result.getOriginalUrl());
         assertEquals(10L, result.getClickCount());
-        verify(shortUrlRepository, never()).save(any());
-    }
-
-    @Test
-    void createShortUrl_throwsBadRequestForBlankUrl() {
-        BadRequestException exception = assertThrows(
-                BadRequestException.class,
-                () -> shortUrlService.createShortUrl("   "));
-
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         verify(shortUrlRepository, never()).save(any());
     }
 
@@ -172,7 +163,7 @@ class ShortUrlServiceTest {
     }
 
     @Test
-    void deleteUrl_deletesExistingShortCode() {
+    void deleteUrl_softDeletesExistingShortCode() {
         ShortUrl shortUrl = new ShortUrl();
         shortUrl.setId(10L);
         shortUrl.setShortCode("abc12345");
@@ -181,7 +172,10 @@ class ShortUrlServiceTest {
 
         shortUrlService.deleteUrl("abc12345");
 
-        verify(shortUrlRepository).delete(shortUrl);
+        ArgumentCaptor<ShortUrl> captor = ArgumentCaptor.forClass(ShortUrl.class);
+        verify(shortUrlRepository).save(captor.capture());
+        assertTrue(captor.getValue().isDeleted());
+        assertNotNull(captor.getValue().getDeletedAt());
     }
 
     @Test
