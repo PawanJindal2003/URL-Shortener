@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.builder.url_shortener.config.MessageService;
 import com.builder.url_shortener.config.Messages;
+import com.builder.url_shortener.dto.CachedShortUrl;
 import com.builder.url_shortener.dto.ShortUrlDto;
 import com.builder.url_shortener.entity.ShortUrl;
 import com.builder.url_shortener.exception.InternalServerException;
@@ -27,6 +28,7 @@ public class ShortUrlService {
     private static final int MAX_SHORT_CODE_GENERATION_ATTEMPTS = 5;
 
     private final ShortUrlRepository shortUrlRepository;
+    private final ShortUrlLookupService shortUrlLookupService;
     private final MessageService messageService;
 
     @Transactional
@@ -58,44 +60,37 @@ public class ShortUrlService {
 
     @Transactional
     public String redirect(String shortCode) {
-        ShortUrl shortUrl = findByShortCodeOrThrow(shortCode);
+        CachedShortUrl cached = shortUrlLookupService.findByShortCodeOrThrow(shortCode);
 
-        if (shortUrl.getExpiresAt() != null
-                && shortUrl.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (cached.expiresAt() != null && cached.expiresAt().isBefore(LocalDateTime.now())) {
             log.warn(messageService.get(Messages.LOG_SERVICE_SHORT_URL_REDIRECT_EXPIRED, shortCode));
             throw new ResourceExpiredException(Messages.ERROR_SHORT_URL_EXPIRED);
         }
 
-        shortUrl.setClickCount(shortUrl.getClickCount() + 1);
-        shortUrlRepository.save(shortUrl);
-        log.debug(messageService.get(
-                Messages.LOG_SERVICE_SHORT_URL_REDIRECT_SUCCESS,
-                shortCode,
-                shortUrl.getClickCount()));
+        shortUrlRepository.incrementClickCount(shortCode);
+        log.debug(messageService.get(Messages.LOG_SERVICE_SHORT_URL_REDIRECT_SUCCESS, shortCode, "incremented"));
 
-        return shortUrl.getOriginalUrl();
+        return cached.originalUrl();
     }
 
     public ShortUrlDto getMetadata(String shortCode) {
-        ShortUrl shortUrl = findByShortCodeOrThrow(shortCode);
+        ShortUrl shortUrl = shortUrlRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> {
+                    log.warn(messageService.get(Messages.LOG_SERVICE_SHORT_URL_NOT_FOUND, shortCode));
+                    return new NotFoundException(Messages.ERROR_SHORT_URL_NOT_FOUND);
+                });
         return ShortUrlDto.toDto(shortUrl);
     }
 
     @Transactional
     public void deleteUrl(String shortCode) {
-        ShortUrl shortUrl = findByShortCodeOrThrow(shortCode);
+        ShortUrl shortUrl = shortUrlRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new NotFoundException(Messages.ERROR_SHORT_URL_NOT_FOUND));
         shortUrl.setDeleted(true);
         shortUrl.setDeletedAt(LocalDateTime.now());
         shortUrlRepository.save(shortUrl);
+        shortUrlLookupService.evict(shortCode);
         log.info(messageService.get(Messages.LOG_SERVICE_SHORT_URL_DELETE_SUCCESS, shortCode));
-    }
-
-    private ShortUrl findByShortCodeOrThrow(String shortCode) {
-        return shortUrlRepository.findByShortCode(shortCode)
-                .orElseThrow(() -> {
-                    log.warn(messageService.get(Messages.LOG_SERVICE_SHORT_URL_NOT_FOUND, shortCode));
-                    return new NotFoundException(Messages.ERROR_SHORT_URL_NOT_FOUND);
-                });
     }
 
     private String generateUniqueShortCode() {

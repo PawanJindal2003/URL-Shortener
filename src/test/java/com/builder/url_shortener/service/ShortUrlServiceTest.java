@@ -22,6 +22,7 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.http.HttpStatus;
 
 import com.builder.url_shortener.config.MessageService;
+import com.builder.url_shortener.dto.CachedShortUrl;
 import com.builder.url_shortener.dto.ShortUrlDto;
 import com.builder.url_shortener.entity.ShortUrl;
 import com.builder.url_shortener.exception.NotFoundException;
@@ -34,6 +35,9 @@ class ShortUrlServiceTest {
     @Mock
     private ShortUrlRepository shortUrlRepository;
 
+    @Mock
+    private ShortUrlLookupService shortUrlLookupService;
+
     private ShortUrlService shortUrlService;
 
     @BeforeEach
@@ -42,7 +46,7 @@ class ShortUrlServiceTest {
         messageSource.setBasename("messages");
         messageSource.setDefaultEncoding("UTF-8");
         MessageService messageService = new MessageService(messageSource);
-        shortUrlService = new ShortUrlService(shortUrlRepository, messageService);
+        shortUrlService = new ShortUrlService(shortUrlRepository, shortUrlLookupService, messageService);
     }
 
     @Test
@@ -86,26 +90,26 @@ class ShortUrlServiceTest {
 
     @Test
     void redirect_returnsOriginalUrlAndIncrementsClickCount() {
-        ShortUrl shortUrl = new ShortUrl();
-        shortUrl.setShortCode("abc12345");
-        shortUrl.setOriginalUrl("https://example.com");
-        shortUrl.setClickCount(2L);
-        shortUrl.setExpiresAt(LocalDateTime.now().plusDays(1));
+        CachedShortUrl cached = new CachedShortUrl(
+                1L,
+                "abc12345",
+                "https://example.com",
+                LocalDateTime.now().plusDays(1));
 
-        when(shortUrlRepository.findByShortCode("abc12345")).thenReturn(Optional.of(shortUrl));
+        when(shortUrlLookupService.findByShortCodeOrThrow("abc12345")).thenReturn(cached);
+        when(shortUrlRepository.incrementClickCount("abc12345")).thenReturn(1);
 
         String originalUrl = shortUrlService.redirect("abc12345");
 
         assertEquals("https://example.com", originalUrl);
-
-        ArgumentCaptor<ShortUrl> captor = ArgumentCaptor.forClass(ShortUrl.class);
-        verify(shortUrlRepository).save(captor.capture());
-        assertEquals(3L, captor.getValue().getClickCount());
+        verify(shortUrlRepository).incrementClickCount("abc12345");
+        verify(shortUrlRepository, never()).save(any());
     }
 
     @Test
     void redirect_throwsNotFoundWhenShortCodeDoesNotExist() {
-        when(shortUrlRepository.findByShortCode("missing")).thenReturn(Optional.empty());
+        when(shortUrlLookupService.findByShortCodeOrThrow("missing"))
+                .thenThrow(new NotFoundException("not found"));
 
         NotFoundException exception = assertThrows(
                 NotFoundException.class,
@@ -116,19 +120,20 @@ class ShortUrlServiceTest {
 
     @Test
     void redirect_throwsGoneWhenUrlIsExpired() {
-        ShortUrl shortUrl = new ShortUrl();
-        shortUrl.setShortCode("expired1");
-        shortUrl.setOriginalUrl("https://example.com");
-        shortUrl.setClickCount(0L);
-        shortUrl.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        CachedShortUrl cached = new CachedShortUrl(
+                1L,
+                "expired1",
+                "https://example.com",
+                LocalDateTime.now().minusMinutes(1));
 
-        when(shortUrlRepository.findByShortCode("expired1")).thenReturn(Optional.of(shortUrl));
+        when(shortUrlLookupService.findByShortCodeOrThrow("expired1")).thenReturn(cached);
 
         ResourceExpiredException exception = assertThrows(
                 ResourceExpiredException.class,
                 () -> shortUrlService.redirect("expired1"));
 
         assertEquals(HttpStatus.GONE, exception.getStatus());
+        verify(shortUrlRepository, never()).incrementClickCount(any());
     }
 
     @Test
@@ -149,6 +154,7 @@ class ShortUrlServiceTest {
         assertEquals("https://example.com", result.getOriginalUrl());
         assertEquals(5L, result.getClickCount());
         assertEquals(shortUrl.getExpiresAt(), result.getExpiresAt());
+        verify(shortUrlLookupService, never()).findByShortCodeOrThrow(any());
     }
 
     @Test
@@ -164,11 +170,13 @@ class ShortUrlServiceTest {
 
     @Test
     void deleteUrl_softDeletesExistingShortCode() {
+        CachedShortUrl cached = new CachedShortUrl(10L, "abc12345", "https://example.com", null);
         ShortUrl shortUrl = new ShortUrl();
         shortUrl.setId(10L);
         shortUrl.setShortCode("abc12345");
 
-        when(shortUrlRepository.findByShortCode("abc12345")).thenReturn(Optional.of(shortUrl));
+        when(shortUrlLookupService.findByShortCodeOrThrow("abc12345")).thenReturn(cached);
+        when(shortUrlRepository.findById(10L)).thenReturn(Optional.of(shortUrl));
 
         shortUrlService.deleteUrl("abc12345");
 
@@ -176,11 +184,13 @@ class ShortUrlServiceTest {
         verify(shortUrlRepository).save(captor.capture());
         assertTrue(captor.getValue().isDeleted());
         assertNotNull(captor.getValue().getDeletedAt());
+        verify(shortUrlLookupService).evict("abc12345");
     }
 
     @Test
     void deleteUrl_throwsNotFoundWhenShortCodeDoesNotExist() {
-        when(shortUrlRepository.findByShortCode("missing")).thenReturn(Optional.empty());
+        when(shortUrlLookupService.findByShortCodeOrThrow("missing"))
+                .thenThrow(new NotFoundException("not found"));
 
         NotFoundException exception = assertThrows(
                 NotFoundException.class,
