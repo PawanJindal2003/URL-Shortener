@@ -10,7 +10,6 @@ import com.builder.url_shortener.config.MessageService;
 import com.builder.url_shortener.config.Messages;
 import com.builder.url_shortener.dto.ShortUrlDto;
 import com.builder.url_shortener.entity.ShortUrl;
-import com.builder.url_shortener.exception.BadRequestException;
 import com.builder.url_shortener.exception.InternalServerException;
 import com.builder.url_shortener.exception.NotFoundException;
 import com.builder.url_shortener.exception.ResourceExpiredException;
