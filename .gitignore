@@ -12,6 +12,10 @@ HELP.md
 .springBeans
 .sts4-cache
 
+# --- Node / Netlify ---
+node_modules/
+.netlify/
+
 # --- Frontend (client-app) ---
 client-app/node_modules/
 client-app/dist/
@@ -80,3 +84,4 @@ replay_pid*
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+node_modules
