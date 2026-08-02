@@ -2,7 +2,6 @@ package com.builder.url_shortener.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,10 +11,7 @@ import org.hibernate.annotations.SQLRestriction;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "short_url",
-        indexes = {@Index(name = "idx_short_url_expires_at", columnList = "expires_at")}
-)
+@Table(name = "short_url")
 @Getter
 @Setter
 @SQLDelete(sql = "UPDATE short_url SET deleted = 1, deleted_at = NOW(6) WHERE id = ?")
