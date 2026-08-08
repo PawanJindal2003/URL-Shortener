@@ -13,6 +13,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.util.HtmlUtils;
 
 import com.builder.url_shortener.config.MessageService;
@@ -73,6 +74,17 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 messageService.get(Messages.ERROR_TITLE_BAD_REQUEST),
                 messageService.get(Messages.ERROR_MALFORMED_JSON),
+                request);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(
+            NoResourceFoundException ex,
+            HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                messageService.get(Messages.ERROR_TITLE_NOT_FOUND),
+                messageService.get(Messages.ERROR_RESOURCE_NOT_FOUND),
                 request);
     }
 

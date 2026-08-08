@@ -14,6 +14,7 @@ public final class Messages {
     // API error messages
     public static final String ERROR_URL_BLANK = "error.url.blank";
     public static final String ERROR_SHORT_URL_NOT_FOUND = "error.shortUrl.notFound";
+    public static final String ERROR_RESOURCE_NOT_FOUND = "error.resource.notFound";
     public static final String ERROR_SHORT_URL_EXPIRED = "error.shortUrl.expired";
     public static final String ERROR_SHORT_URL_CODE_GENERATION_FAILED = "error.shortUrl.codeGenerationFailed";
     public static final String ERROR_MALFORMED_JSON = "error.malformedJson";

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: url-shortener-api
+    name: urlsharpener
     runtime: docker
     plan: free
     region: oregon

@@ -1,12 +1,28 @@
+# Build output
 target/
+
+# Frontend (not needed for backend image)
 client-app/
 node_modules/
+package.json
+package-lock.json
+
+# Git & IDE
 .git/
 .gitignore
+.gitattributes
 .idea/
 .vscode/
 .cursor/
-*.md
+
+# Local env & secrets (injected by Render at runtime)
 .env
 .env.*
+
+# Docs & deployment metadata (not needed in image)
+*.md
+render.yaml
+scripts/
+
+# Logs
 *.log
