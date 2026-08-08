@@ -16,7 +16,7 @@ type RedirectState = 'loading' | 'not-found' | 'expired' | 'error';
     } @else {
       <main class="page">
         <header class="hero">
-          <span class="badge">link.ly</span>
+          <span class="badge">sharpen.ly</span>
         </header>
 
         <div class="panel">
