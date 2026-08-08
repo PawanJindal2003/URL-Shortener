@@ -11,6 +11,8 @@ HELP.md
 .settings/
 .springBeans
 .sts4-cache
+*.jar
+!**/.mvn/wrapper/maven-wrapper.jar
 
 # --- Node / Netlify ---
 node_modules/
@@ -34,14 +36,30 @@ client-app/yarn-debug.log*
 client-app/yarn-error.log*
 client-app/pnpm-debug.log*
 
+# --- Docker ---
+.docker/
+docker-compose.override.yml
+docker-compose.override.yaml
+
 # --- Environment & secrets ---
+# Real credentials — never commit
 .env
+.env.local
+.env.dev
+.env.prod
+
+# Allow committed templates only
 .env.*
-!.env.example
+!.env.*.example
+
+# Spring Boot local overrides
 *.local.properties
 application-local.properties
 application-local.yml
 application-local.yaml
+
+# --- Deployment (local CLI state) ---
+.render/
 
 # --- IDE ---
 .idea/
@@ -84,4 +102,3 @@ replay_pid*
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
-node_modules

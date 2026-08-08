@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Table(name = "short_url")
 @Getter
 @Setter
-@SQLDelete(sql = "UPDATE short_url SET deleted = 1, deleted_at = NOW(6) WHERE id = ?")
+@SQLDelete(sql = "UPDATE short_url SET deleted = true, deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class ShortUrl extends AuditableEntity {
 

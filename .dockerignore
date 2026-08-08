@@ -1,0 +1,12 @@
+target/
+client-app/
+node_modules/
+.git/
+.gitignore
+.idea/
+.vscode/
+.cursor/
+*.md
+.env
+.env.*
+*.log

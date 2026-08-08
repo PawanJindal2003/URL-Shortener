@@ -2,11 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { environment } from '../../environments/environment';
 import { ShortUrl } from '../models/short-url.model';
 
 @Injectable({ providedIn: 'root' })
 export class UrlShortenerService {
-  private readonly apiBase = '/api';
+  private readonly apiBase = environment.apiBaseUrl;
 
   constructor(private readonly http: HttpClient) {}
 
